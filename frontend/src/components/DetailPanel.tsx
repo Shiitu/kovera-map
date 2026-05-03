@@ -14,6 +14,7 @@ const DetailPanel: React.FC = () => {
   const { selectedNode, setSelectedNode, detailsOpen, privacyMode } = useNetworkContext();
   const [nodeDetail, setNodeDetail] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const panelWidth = 'min(88vw, 300px)';
 
   useEffect(() => {
     if (!selectedNode) {
@@ -46,6 +47,7 @@ const DetailPanel: React.FC = () => {
     if (!type) return 'Unknown';
     return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
+  const isUserHomeNode = (node: any) => String(node?.type || '').toLowerCase() === 'user_home';
 
   const safeLabel = (value?: string) => {
     const raw = String(value || '').trim();
@@ -53,19 +55,24 @@ const DetailPanel: React.FC = () => {
     if (raw === raw.toUpperCase() && raw.length <= 3) return 'Unknown';
     return raw;
   };
+  const getPrimaryDisplayName = (node: any) => {
+    if (!node) return 'Unknown';
+    if (isUserHomeNode(node)) return String(node.userId || node.uid || node.id || 'Unknown');
+    return safeLabel(node.name || node.label);
+  };
 
   return (
     <motion.div 
       initial={false}
       animate={{ 
-        width: detailsOpen ? 300 : 0,
+        width: detailsOpen ? panelWidth : 0,
         opacity: detailsOpen ? 1 : 0,
         marginLeft: detailsOpen ? 0 : -20
       }}
       transition={{ type: 'spring', damping: 25, stiffness: 120 }}
       className="bg-bg2/60 backdrop-blur-sm border-l border-border2 flex flex-col h-full overflow-hidden shrink-0"
     >
-      <div className="w-[300px] h-full flex flex-col">
+      <div className="w-[min(88vw,300px)] h-full flex flex-col">
         {!displayNode ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
             <div className="w-12 h-12 bg-kovera/10 rounded-2xl flex items-center justify-center mb-4">
@@ -80,7 +87,7 @@ const DetailPanel: React.FC = () => {
               <div className="flex items-start justify-between mb-6">
                 <div>
                   <h2 className="text-lg font-bold leading-tight truncate max-w-[180px] text-text">
-                    {loading ? 'Loading...' : safeLabel(displayNode.name || displayNode.label)}
+                    {loading ? 'Loading...' : getPrimaryDisplayName(displayNode)}
                   </h2>
                   <p className="text-[10px] text-text3 font-mono mt-1">id: {displayNode.id}</p>
                 </div>
@@ -221,7 +228,9 @@ const DetailPanel: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-xs font-semibold text-text">
-                    {safeLabel(displayNode.name) || formatType(displayNode.type)}
+                    {isUserHomeNode(displayNode)
+                      ? getPrimaryDisplayName(displayNode)
+                      : (safeLabel(displayNode.name) || formatType(displayNode.type))}
                   </div>
                   <div className="text-[10px] text-text3 font-mono">
                     uid: {displayNode.userId || displayNode.uid || displayNode.id}

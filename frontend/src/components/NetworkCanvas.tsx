@@ -307,7 +307,8 @@ const NetworkCanvas: React.FC = () => {
     ctx.translate(viewState.offset.x, viewState.offset.y);
     ctx.scale(viewState.scale, viewState.scale);
 
-    const chainsList = Array.isArray(graphData.chains) ? graphData.chains : [];
+    const showChainVisuals = filter === 'All';
+    const chainsList = showChainVisuals && Array.isArray(graphData.chains) ? graphData.chains : [];
     const hasChainOverlay = chainsList.some(
       (c: any) => c && Array.isArray(c.path) && c.path.length >= 2
     );
@@ -344,7 +345,7 @@ const NetworkCanvas: React.FC = () => {
 
     // Focus Logic
     const focusedId = selectedNode?.id || hoveredNode?.id;
-    const acPath: string[] = activeChain?.path || [];
+    const acPath: string[] = showChainVisuals ? (activeChain?.path || []) : [];
     const connectedEdges = focusedId ? filteredEdges.filter(e => e.source === focusedId || e.target === focusedId) : [];
     const connectedNodeIds = new Set([
       ...(focusedId ? [focusedId] : []),
@@ -483,7 +484,7 @@ const NetworkCanvas: React.FC = () => {
       const isHovered = hoveredNode && hoveredNode.id === node.id;
       const isFocused = isSelected || isHovered;
       const isInNeighborhood = focusedId ? connectedNodeIds.has(node.id) : true;
-      const isChainActive = activeChain && (activeChain.path || []).includes(node.id);
+      const isChainActive = showChainVisuals && activeChain && (activeChain.path || []).includes(node.id);
       
       const baseRadius = 8;
       let radius = baseRadius + (node.incomeCount || 0) * 1.5;
@@ -556,7 +557,7 @@ const NetworkCanvas: React.FC = () => {
     });
 
     ctx.restore();
-  }, [graphData, filteredNodes, filteredEdges, selectedNode, activeChain, viewState, canvasRef, colors, theme, hoveredNode, privacyMode, chainMetrics, nodePosById]);
+  }, [graphData, filteredNodes, filteredEdges, selectedNode, activeChain, filter, viewState, canvasRef, colors, theme, hoveredNode, privacyMode, chainMetrics, nodePosById]);
 
   // Main Draw Loop
   useEffect(() => {
