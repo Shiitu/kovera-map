@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "JetBrains Mono", "Courier New", Courier, monospace;
+  
+  /* Kovera Dark Theme */
+  --color-bg: #0B1120;
+  --color-bg2: #0F1729;
+  --color-bg3: #131D32;
+  --color-panel: #111B2E;
+  --color-card: #131D32;
+  --color-border: rgba(34, 201, 138, 0.08);
+  --color-border2: rgba(255, 255, 255, 0.06);
+  
+  /* Text */
+  --color-text: #F0F2F7;
+  --color-text2: #8B96B8;
+  --color-text3: #4D5A7C;
+  
+  /* Kovera Green (Primary) */
+  --color-kovera: #22C98A;
+  --color-kovera-light: #34D399;
+  --color-kovera-dark: #059669;
+  --color-kovera-glow: rgba(34, 201, 138, 0.15);
+  
+  /* Accent Colors */
+  --color-blue-node: #378ADD;
+  --color-green-node: #22C98A;
+  --color-pink-node: #D4537E;
+  --color-amber-node: #F59E0B;
+  --color-gold-node: #D4A017;
+  --color-purple-node: #8B5CF6;
+  --color-cyan-node: #06B6D4;
+}
+
+:root.light {
+  --color-bg: #F5F7FA;
+  --color-bg2: #E8ECF4;
+  --color-bg3: #DDE3EF;
+  --color-panel: #FFFFFF;
+  --color-card: #FFFFFF;
+  --color-border: rgba(34, 201, 138, 0.12);
+  --color-border2: rgba(0, 0, 0, 0.06);
+  --color-text: #1A1F2E;
+  --color-text2: #4D5A7C;
+  --color-text3: #8B96B8;
+  
+  --color-kovera: #059669;
+  --color-kovera-light: #10B981;
+  --color-kovera-dark: #047857;
+  --color-kovera-glow: rgba(5, 150, 105, 0.1);
+  
+  --color-blue-node: #2563EB;
+  --color-green-node: #059669;
+  --color-pink-node: #DB2777;
+  --color-amber-node: #D97706;
+}
+
+:root {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  --f-mono: var(--font-mono);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* ── Kovera Card System ── */
+.kovera-card {
+  background: var(--color-card);
+  border: 1px solid var(--color-border2);
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+}
+.kovera-card:hover {
+  border-color: rgba(34, 201, 138, 0.15);
+  box-shadow: 0 0 20px rgba(34, 201, 138, 0.05);
+}
+
+/* ── Kovera Button ── */
+.kovera-btn {
+  background: linear-gradient(135deg, #22C98A, #10B981);
+  color: white;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(34, 201, 138, 0.25);
+}
+.kovera-btn:hover {
+  background: linear-gradient(135deg, #34D399, #22C98A);
+  box-shadow: 0 6px 25px rgba(34, 201, 138, 0.35);
+  transform: translateY(-1px);
+}
+.kovera-btn:active {
+  transform: scale(0.98);
+}
+
+.kovera-btn-outline {
+  background: transparent;
+  border: 1px solid rgba(34, 201, 138, 0.25);
+  color: var(--color-kovera);
+  font-weight: 600;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s ease;
+}
+.kovera-btn-outline:hover {
+  background: rgba(34, 201, 138, 0.08);
+  border-color: rgba(34, 201, 138, 0.4);
+}
+
+/* ── Input Fields ── */
+.kovera-input {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--color-border2);
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
+.kovera-input:focus {
+  border-color: rgba(34, 201, 138, 0.4);
+  box-shadow: 0 0 0 3px rgba(34, 201, 138, 0.08);
+}
+.kovera-input::placeholder {
+  color: var(--color-text3);
+}
+
+/* ── Technical Dashboard Helpers ── */
+.mono {
+  font-family: var(--font-mono);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-text3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-kovera);
+}
+
+.canvas-grid {
+  background-image: radial-gradient(var(--color-border) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out forwards;
+}
+.kovera-shimmer {
+  background: linear-gradient(90deg, transparent, rgba(34,201,138,0.05), transparent);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}

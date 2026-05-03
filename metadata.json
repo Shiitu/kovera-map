@@ -1,0 +1,6 @@
+{
+  "name": "Kovera Network Map Portal",
+  "description": "Real-time, permission-aware graph visualization tool for Kovera real estate platform. Detects move chains and demand clusters with an anonymized schematic view.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
