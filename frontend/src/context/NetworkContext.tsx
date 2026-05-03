@@ -63,7 +63,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedNode, setSelectedNode] = useState<any | null>(null);
+  const [selectedNode, setSelectedNodeState] = useState<any | null>(null);
   const [activeChain, setActiveChain] = useState<any | null>(null);
   const [filter, setFilter] = useState('All');
   const [chainStatusFilter, setChainStatusFilter] = useState<0 | 1 | 2 | 3>(
@@ -79,10 +79,10 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
     (localStorage.getItem('kovera_theme') as 'light' | 'dark') || 'dark'
   );
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(
-    localStorage.getItem('kovera_sidebar_open') !== 'false'
+    localStorage.getItem('kovera_sidebar_open') === 'true'
   );
   const [detailsOpen, setDetailsOpen] = useState<boolean>(
-    localStorage.getItem('kovera_details_open') !== 'false'
+    localStorage.getItem('kovera_details_open') === 'true'
   );
 
   const isAdmin = role === 'admin';
@@ -129,6 +129,13 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem('kovera_details_open', String(newVal));
       return newVal;
     });
+  }, []);
+
+  const setSelectedNode = useCallback((node: any | null) => {
+    setSelectedNodeState(node);
+    const shouldOpen = Boolean(node);
+    setDetailsOpen(shouldOpen);
+    localStorage.setItem('kovera_details_open', String(shouldOpen));
   }, []);
 
   const toggleExcludeInternal = useCallback(() => {

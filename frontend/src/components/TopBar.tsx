@@ -10,7 +10,7 @@ import { LogOut, RefreshCw, Moon, Sun, PanelLeft, PanelRight, Zap, MapPinned, Lo
 const TopBar: React.FC = () => {
   const { 
     isAdmin, role, loading, regenerateGraph, logout, theme, toggleTheme, 
-    sidebarOpen, toggleSidebar, detailsOpen, toggleDetails, networkStats, agentMetrics,
+    sidebarOpen, toggleSidebar, detailsOpen, toggleDetails, networkStats, agentMetrics, selectedNode,
     refreshGeocode, refreshing, privacyMode, togglePrivacyMode
   } = useNetworkContext();
 
@@ -96,8 +96,9 @@ const TopBar: React.FC = () => {
         
         <button 
           onClick={toggleDetails}
-          className={`p-2 rounded-lg transition-all ${detailsOpen ? 'text-kovera bg-kovera-glow' : 'text-text3 hover:text-text hover:bg-white/5'}`}
-          title={detailsOpen ? 'Close Panel' : 'Open Panel'}
+          disabled={!selectedNode && !detailsOpen}
+          className={`p-2 rounded-lg transition-all disabled:opacity-40 disabled:cursor-not-allowed ${detailsOpen ? 'text-kovera bg-kovera-glow' : 'text-text3 hover:text-text hover:bg-white/5'}`}
+          title={detailsOpen ? 'Close Panel' : 'Select a node to open panel'}
         >
           <PanelRight className="w-4 h-4" />
         </button>

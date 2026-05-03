@@ -34,6 +34,7 @@ const Sidebar: React.FC = () => {
     chainStatusFilter,
     setChainStatusFilter
   } = useNetworkContext();
+  const panelWidth = 'min(85vw, 250px)';
 
   const chainStatusOptions: {
     value: 0 | 1 | 2 | 3;
@@ -113,14 +114,14 @@ const Sidebar: React.FC = () => {
     <motion.div
       initial={false}
       animate={{
-        width: sidebarOpen ? 250 : 0,
+        width: sidebarOpen ? panelWidth : 0,
         opacity: sidebarOpen ? 1 : 0,
         marginRight: sidebarOpen ? 0 : -20
       }}
       transition={{ type: 'spring', damping: 25, stiffness: 120 }}
       className="bg-bg2/60 backdrop-blur-sm border-r border-border2 flex flex-col h-full overflow-hidden shrink-0"
     >
-      <div className="p-4 flex-1 space-y-5 overflow-y-auto w-[250px]">
+      <div className="p-4 flex-1 space-y-5 overflow-y-auto w-[min(85vw,250px)]">
         {/* Node Filters */}
         <section>
           <h3 className="text-[10px] uppercase text-text3 font-semibold mb-3 tracking-widest">Node Filters</h3>

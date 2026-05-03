@@ -19,10 +19,10 @@ const NetworkPortal: React.FC = () => {
     <div className="h-screen flex flex-col bg-bg text-text overflow-hidden">
       <TopBar />
       
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden min-w-0">
         <Sidebar />
         
-        <main className="flex-1 relative flex flex-col border-r border-border2 overflow-hidden">
+        <main className="flex-1 relative flex flex-col border-r border-border2 overflow-hidden min-w-0">
           {/* Admin Navigation */}
           {isAdmin && (
             <Link 
