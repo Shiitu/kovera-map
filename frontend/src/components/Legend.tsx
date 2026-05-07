@@ -7,7 +7,7 @@ import React from 'react';
 
 const Legend: React.FC = () => {
   return (
-    <div className="absolute bottom-6 left-6 p-4 rounded-2xl backdrop-blur-xl bg-card/60 border border-border2 z-30 pointer-events-none shadow-2xl">
+    <div className="absolute bottom-6 left-6 p-4 rounded-2xl backdrop-blur-xl bg-card/60 border border-border2 z-1200 pointer-events-none shadow-2xl">
       <div className="mb-3">
         <h4 className="text-[9px] uppercase font-semibold tracking-[0.2em] text-text3 mb-2.5">Entities</h4>
         <div className="grid grid-cols-2 gap-x-5 gap-y-2">

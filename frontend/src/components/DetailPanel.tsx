@@ -51,8 +51,8 @@ const DetailPanel: React.FC = () => {
 
   const safeLabel = (value?: string) => {
     const raw = String(value || '').trim();
-    if (!raw || raw.length <= 2) return 'Unknown';
-    if (raw === raw.toUpperCase() && raw.length <= 3) return 'Unknown';
+    if (!raw) return 'Unknown';
+    // Short labels like "A", "AV", "D1" are valid in this graph.
     return raw;
   };
   const getPrimaryDisplayName = (node: any) => {
@@ -222,18 +222,22 @@ const DetailPanel: React.FC = () => {
 
             {/* Footer */}
             <div className="p-5 bg-bg/40 border-t border-border2">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-kovera/10 border border-kovera/20 flex items-center justify-center font-mono text-xs font-bold text-kovera">
-                  {safeLabel(displayNode.label) || 'N'}
-                </div>
-                <div>
-                  <div className="text-xs font-semibold text-text">
-                    {isUserHomeNode(displayNode)
-                      ? getPrimaryDisplayName(displayNode)
-                      : (safeLabel(displayNode.name) || formatType(displayNode.type))}
+              <div className="rounded-2xl border border-border2/80 bg-bg2/60 px-3 py-2.5">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-kovera/10 border border-kovera/20 flex items-center justify-center font-mono text-xs font-bold text-kovera shrink-0">
+                    {safeLabel(displayNode.label).slice(0, 3)}
                   </div>
-                  <div className="text-[10px] text-text3 font-mono">
-                    uid: {displayNode.userId || displayNode.uid || displayNode.id}
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold text-text truncate">
+                      {isUserHomeNode(displayNode)
+                        ? getPrimaryDisplayName(displayNode)
+                        : (safeLabel(displayNode.name) !== 'Unknown'
+                            ? safeLabel(displayNode.name)
+                            : safeLabel(displayNode.label))}
+                    </div>
+                    <div className="text-[10px] text-text3 font-mono truncate">
+                      uid: {displayNode.userId || displayNode.uid || displayNode.id}
+                    </div>
                   </div>
                 </div>
               </div>
