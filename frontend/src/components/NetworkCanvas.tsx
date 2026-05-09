@@ -12,18 +12,19 @@ import { useNetworkContext } from '../context/NetworkContext';
 const toNodeType = (node: any) => String(node.type || '').toLowerCase();
 const isUserHomeLike = (node: any) => ['user_home', 'swapper', 'pure_seller'].includes(toNodeType(node));
 const isBuyerLike = (node: any) => toNodeType(node) === 'pure_buyer';
+const isPocketListing = (node: any) => toNodeType(node) === 'pocket_listing';
 const isOffMarketListing = (node: any) =>
-  toNodeType(node) === 'pocket_listing' ||
   (toNodeType(node) === 'seeded_listing' && String(node.listingCategory || node.source || '').toLowerCase() === 'off_market');
 const isPublicListing = (node: any) =>
   toNodeType(node) === 'public_listing' ||
-  (toNodeType(node) === 'seeded_listing' && !isOffMarketListing(node));
+  (toNodeType(node) === 'seeded_listing' && !isOffMarketListing(node) && !isPocketListing(node));
 const isDreamAnchor = (node: any) => ['dream_anchor', 'dream_address'].includes(toNodeType(node));
 
 const markerColor = (node: any) => {
   if (isDreamAnchor(node)) return '#D4537E';
   if (isBuyerLike(node)) return '#BA7517';
-  if (isOffMarketListing(node)) return '#2DD4BF';
+  if (isPocketListing(node)) return '#A855F7';
+  if (isOffMarketListing(node)) return '#14B8A6';
   if (isPublicListing(node)) return '#22C98A';
   return '#378ADD';
 };
@@ -58,14 +59,18 @@ const NetworkCanvas: React.FC = () => {
   const nodesWithCoords = useMemo(() => {
     const nodes = Array.isArray(graphData?.nodes) ? graphData.nodes : [];
     return nodes.filter(
-      (n: any) => Number.isFinite(Number(n.lat)) && Number.isFinite(Number(n.lng))
+      (n: any) =>
+        Number.isFinite(Number(n.lat)) &&
+        Number.isFinite(Number(n.lng)) &&
+        n.isInternal !== true &&
+        n.internal !== true
     );
   }, [graphData]);
 
   const filteredNodes = useMemo(() => {
     if (filter === 'User Homes') return nodesWithCoords.filter(isUserHomeLike);
     if (filter === 'Public Listings') return nodesWithCoords.filter(isPublicListing);
-    if (filter === 'Off-Market Properties') return nodesWithCoords.filter(isOffMarketListing);
+    if (filter === 'Off-Market Properties') return nodesWithCoords.filter((n: any) => isOffMarketListing(n) || isPocketListing(n));
     if (filter === 'Pure Buyers') return nodesWithCoords.filter(isBuyerLike);
     if (filter === 'Dream Anchors') return nodesWithCoords.filter(isDreamAnchor);
     return nodesWithCoords;
@@ -108,9 +113,18 @@ const NetworkCanvas: React.FC = () => {
 
   const filteredEdges = useMemo(() => {
     const edges = Array.isArray(graphData?.edges) ? graphData.edges : [];
+    const normalizeType = (value: string) => value.toLowerCase();
     return edges
       .map(toEdgePair)
-      .filter((e: any) => nodeMap.has(e.from) && nodeMap.has(e.to));
+      .filter((e: any) => nodeMap.has(e.from) && nodeMap.has(e.to))
+      .filter((e: any) => e.from !== e.to)
+      .filter((e: any) => {
+        const sourceNode = nodeMap.get(e.from);
+        if (!sourceNode) return false;
+        // Pure buyers should not visually show house-like/discovery likes.
+        if (isBuyerLike(sourceNode) && normalizeType(e.type) !== 'dream') return false;
+        return true;
+      });
   }, [graphData, nodeMap]);
 
   const chainSegments = useMemo(() => {
@@ -149,7 +163,9 @@ const NetworkCanvas: React.FC = () => {
         node.id,
         L.divIcon({
           className: 'kovera-node-icon',
-          html: `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid #fff;border-radius:9999px;"></div>`,
+          html: isDreamAnchor(node)
+            ? `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid #fff;transform:rotate(45deg);"></div>`
+            : `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid #fff;border-radius:9999px;"></div>`,
           iconSize: [size, size],
           iconAnchor: [size / 2, size / 2],
         })
@@ -226,6 +242,14 @@ const NetworkCanvas: React.FC = () => {
           const fromNode = nodeMap.get(edge.from);
           const toNode = nodeMap.get(edge.to);
           if (!fromNode || !toNode) return null;
+          const edgeType = String(edge.type || '').toLowerCase();
+          const isUserToUser = isUserHomeLike(fromNode) && isUserHomeLike(toNode);
+          const strokeColor =
+            edgeType === 'dream'
+              ? '#D4537E'
+              : isUserToUser
+                ? '#F59E0B'
+                : '#378ADD';
 
           return (
             <Polyline
@@ -235,10 +259,10 @@ const NetworkCanvas: React.FC = () => {
                 { lat: Number(toNode.lat), lng: Number(toNode.lng) },
               ]}
               pathOptions={{
-                color: edge.type === 'DREAM' ? '#D4537E' : '#378ADD',
+                color: strokeColor,
                 opacity: 0.7,
-                weight: edge.type === 'DREAM' ? 3 : 2,
-                dashArray: edge.type === 'DREAM' ? '6 6' : undefined,
+                weight: edgeType === 'dream' ? 3 : isUserToUser ? 2.8 : 2.2,
+                dashArray: edgeType === 'dream' ? '6 6' : undefined,
               }}
             />
           );

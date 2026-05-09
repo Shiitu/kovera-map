@@ -21,19 +21,19 @@ const Legend: React.FC = () => {
           </div>
           <div className="flex items-center gap-2">
             <div className="w-2.5 h-2.5 bg-pink-node rotate-45 border border-dashed border-white/20" />
-            <span className="text-[10px] text-text3 font-mono">Anchor</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 bg-pink-node rotate-45" />
-            <span className="text-[10px] text-text3 font-mono">Quick Tab</span>
+            <span className="text-[10px] text-text3 font-mono">Dream Anchor</span>
           </div>
           <div className="flex items-center gap-2 col-span-2">
             <div className="w-2 h-2 border border-dashed border-amber-node rounded-full" />
             <span className="text-[10px] text-text3 font-mono">Potential Buyer</span>
           </div>
-          <div className="flex items-center gap-2 col-span-2">
-            <div className="w-2 h-2 rounded-full bg-teal-300 shadow-[0_0_6px_rgba(45,212,191,0.4)]" />
-            <span className="text-[10px] text-text3 font-mono">Off-Market/Pocket</span>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-teal-400 shadow-[0_0_6px_rgba(20,184,166,0.45)]" />
+            <span className="text-[10px] text-text3 font-mono">Off-Market</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_6px_rgba(168,85,247,0.45)]" />
+            <span className="text-[10px] text-text3 font-mono">Pocket Listing</span>
           </div>
         </div>
       </div>
@@ -42,16 +42,24 @@ const Legend: React.FC = () => {
         <h4 className="text-[9px] uppercase font-semibold tracking-[0.2em] text-text3 mb-2.5">Topology</h4>
         <div className="space-y-2">
           <div className="flex items-center gap-3">
-            <div className="w-5 h-px bg-blue-node/40" />
-            <span className="text-[9px] uppercase text-text3 font-mono tracking-wider">Interest Link</span>
+            <div className="w-5 h-px bg-blue-node/60" />
+            <span className="text-[9px] uppercase text-text3 font-mono tracking-wider">User-to-Listing</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-5 h-[1.5px] bg-amber-node/60" />
+            <div className="w-5 h-[1.5px] bg-amber-node/80" />
             <span className="text-[9px] uppercase text-text3 font-mono tracking-wider">User-to-User</span>
           </div>
           <div className="flex items-center gap-3">
-            <div className="w-5 h-[1.5px] border-t-2 border-dashed border-kovera shadow-[0_0_8px_rgba(34,201,138,0.3)]" />
-            <span className="text-[9px] uppercase text-kovera font-mono tracking-wider font-semibold">Active Chain</span>
+            <div className="w-5 h-[1.5px] border-t-2 border-dashed border-pink-node" />
+            <span className="text-[9px] uppercase text-text3 font-mono tracking-wider">Dream Link</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-[1.5px] bg-kovera shadow-[0_0_8px_rgba(34,201,138,0.3)]" />
+            <span className="text-[9px] uppercase text-kovera font-mono tracking-wider font-semibold">Ready Chain</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-[2px] bg-yellow-400" />
+            <span className="text-[9px] uppercase text-yellow-300 font-mono tracking-wider font-semibold">Active Chain</span>
           </div>
         </div>
       </div>
