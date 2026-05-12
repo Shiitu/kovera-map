@@ -165,17 +165,18 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   /**
    * Fetch all network data in parallel:
-   * 1. Graph (nodes + edges) — uses excludeInternal toggle
+   * 1. Graph (nodes + edges) — excludeInternal toggle; full graph (chainFilter=0) for map pins
    * 2. Chains
    * 3. Stats
    * 4. Clusters
    * 5. Address Cycles
    */
-  const fetchAllData = useCallback(async (excludeInternalVal: boolean, refresh = false, chainFilter: 0 | 1 | 2 | 3 = 0) => {
+  /** Graph always requests chainFilter=0 so the map has full nodes; Chain Status in the UI does not empty the graph when no chains match. */
+  const fetchAllData = useCallback(async (excludeInternalVal: boolean, refresh = false) => {
     setLoading(true);
     try {
       const [graphRes, chainsRes, statsRes, clustersRes, cyclesRes] = await Promise.allSettled([
-        analyticsApi.getNetworkGraph(excludeInternalVal, refresh, chainFilter),
+        analyticsApi.getNetworkGraph(excludeInternalVal, refresh, 0),
         analyticsApi.getNetworkChains(2),
         analyticsApi.getNetworkStats(),
         analyticsApi.getNetworkClusters(3),
@@ -217,12 +218,12 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
   }, []);
 
   const refreshGraph = useCallback(async () => {
-    await fetchAllData(excludeInternal, false, chainStatusFilter);
-  }, [fetchAllData, excludeInternal, chainStatusFilter]);
+    await fetchAllData(excludeInternal, false);
+  }, [fetchAllData, excludeInternal]);
 
   const regenerateGraph = async () => {
     if (!isAdmin) return;
-    await fetchAllData(excludeInternal, true, chainStatusFilter);
+    await fetchAllData(excludeInternal, true);
   };
 
   /**
@@ -234,7 +235,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
     try {
       await analyticsApi.refreshGeocode();
       // After geocode completes, fetch fresh data
-      await fetchAllData(excludeInternal, true, chainStatusFilter);
+      await fetchAllData(excludeInternal, true);
     } catch (err: any) {
       setError(err.response?.data?.error || 'Geocode refresh failed');
     } finally {
@@ -254,8 +255,8 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
   };
 
   useEffect(() => {
-    fetchAllData(excludeInternal, false, chainStatusFilter);
-  }, [excludeInternal, chainStatusFilter, fetchAllData]);
+    fetchAllData(excludeInternal, false);
+  }, [excludeInternal, fetchAllData]);
 
   return (
     <NetworkContext.Provider
