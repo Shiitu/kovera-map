@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { useNetworkContext } from '../context/NetworkContext';
-import ChainList from './ChainList';
+// import ChainList from './ChainList';
 import { motion } from 'motion/react';
 import {
   Home,
@@ -64,25 +64,75 @@ const Sidebar: React.FC = () => {
 
   const getCount = (key: string): string | number => {
     const list = Array.isArray(graphData?.nodes) ? graphData.nodes : [];
-    if (!list.length && key !== 'All') return '—';
+    const s = networkStats?.nodes as
+      | {
+          total?: number;
+          userHome?: number;
+          publicListing?: number;
+          pocketListing?: number;
+          pureBuyer?: number;
+          swapper?: number;
+          pureSeller?: number;
+          dreamAnchor?: number;
+        }
+      | undefined;
     const t = (n: any) => String(n.type || '').toLowerCase();
+
+    // Prefer API stats so sidebar matches GET /analytics/network/stats (graph node types differ from stats buckets).
     switch (key) {
       case 'All':
-        return networkStats?.nodes?.total ?? list.length;
+        return s?.total ?? list.length;
       case 'User Homes':
-        return networkStats?.nodes?.userHome ?? list.filter(n => ['user_home', 'swapper', 'pure_seller'].includes(t(n))).length;
+        if (s?.userHome != null) return s.userHome;
+        break;
       case 'Public Listings':
-        return list.filter(n => t(n) === 'public_listing' || (t(n) === 'seeded_listing' && String(n.listingCategory || n.source || '').toLowerCase() !== 'off_market')).length;
+        if (s?.publicListing != null) return s.publicListing;
+        break;
       case 'Off-Market Properties':
-        return list.filter(n => t(n) === 'pocket_listing' || (t(n) === 'seeded_listing' && String(n.listingCategory || n.source || '').toLowerCase() === 'off_market')).length;
+        if (s?.pocketListing != null) return s.pocketListing;
+        break;
       case 'Pure Buyers':
-        return networkStats?.nodes?.pureBuyer ?? list.filter(n => t(n) === 'pure_buyer').length;
+        if (s?.pureBuyer != null) return s.pureBuyer;
+        break;
+      case 'Swappers':
+        if (s?.swapper != null) return s.swapper;
+        break;
+      case 'Pure Sellers':
+        if (s?.pureSeller != null) return s.pureSeller;
+        break;
+      case 'Dream Anchors':
+        if (s?.dreamAnchor != null) return s.dreamAnchor;
+        break;
+      default:
+        return '—';
+    }
+
+    if (!list.length) return '—';
+    switch (key) {
+      case 'User Homes':
+        return list.filter(n => ['user_home', 'swapper', 'pure_seller'].includes(t(n))).length;
+      case 'Public Listings':
+        return list.filter(
+          n =>
+            t(n) === 'public_listing' ||
+            (t(n) === 'seeded_listing' && String(n.listingCategory || n.source || '').toLowerCase() !== 'off_market')
+        ).length;
+      case 'Off-Market Properties':
+        return list.filter(
+          n =>
+            t(n) === 'pocket_listing' ||
+            (t(n) === 'seeded_listing' && String(n.listingCategory || n.source || '').toLowerCase() === 'off_market')
+        ).length;
+      case 'Pure Buyers':
+        return list.filter(n => t(n) === 'pure_buyer').length;
       case 'Swappers':
         return list.filter(n => t(n) === 'swapper' || (t(n) === 'user_home' && n.personType === 'swapper')).length;
       case 'Pure Sellers':
         return list.filter(n => t(n) === 'pure_seller' || (t(n) === 'user_home' && n.personType === 'pure_seller')).length;
       case 'Dream Anchors':
-        return list.filter(n => t(n) === 'dream_anchor' || (t(n) === 'dream_address' && n.dreamHomeSource === 'dream_anchor')).length;
+        return list.filter(
+          n => t(n) === 'dream_anchor' || (t(n) === 'dream_address' && n.dreamHomeSource === 'dream_anchor')
+        ).length;
       default:
         return '—';
     }
@@ -165,12 +215,14 @@ const Sidebar: React.FC = () => {
           </div>
         </section>
 
+        {/* Temporarily hidden — Active Move Chains list
         <div className="h-px bg-border2" aria-hidden />
 
         <section className="flex flex-col overflow-hidden">
           <h3 className="text-[10px] uppercase text-text3 font-semibold mb-3 tracking-widest">Active Move Chains</h3>
           <ChainList />
         </section>
+        */}
 
         {isAdmin && (
           <section>

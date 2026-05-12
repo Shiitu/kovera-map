@@ -11,6 +11,12 @@ import { useNetworkContext } from '../context/NetworkContext';
 
 const toNodeType = (node: any) => String(node.type || '').toLowerCase();
 const isUserHomeLike = (node: any) => ['user_home', 'swapper', 'pure_seller'].includes(toNodeType(node));
+const isSwapperNode = (node: any) =>
+  toNodeType(node) === 'swapper' ||
+  (toNodeType(node) === 'user_home' && String(node.personType || '').toLowerCase() === 'swapper');
+const isPureSellerNode = (node: any) =>
+  toNodeType(node) === 'pure_seller' ||
+  (toNodeType(node) === 'user_home' && String(node.personType || '').toLowerCase() === 'pure_seller');
 const isBuyerLike = (node: any) => toNodeType(node) === 'pure_buyer';
 const isPocketListing = (node: any) => toNodeType(node) === 'pocket_listing';
 const isOffMarketListing = (node: any) =>
@@ -72,6 +78,8 @@ const NetworkCanvas: React.FC = () => {
     if (filter === 'Public Listings') return nodesWithCoords.filter(isPublicListing);
     if (filter === 'Off-Market Properties') return nodesWithCoords.filter((n: any) => isOffMarketListing(n) || isPocketListing(n));
     if (filter === 'Pure Buyers') return nodesWithCoords.filter(isBuyerLike);
+    if (filter === 'Swappers') return nodesWithCoords.filter(isSwapperNode);
+    if (filter === 'Pure Sellers') return nodesWithCoords.filter(isPureSellerNode);
     if (filter === 'Dream Anchors') return nodesWithCoords.filter(isDreamAnchor);
     return nodesWithCoords;
   }, [nodesWithCoords, filter]);
@@ -210,9 +218,11 @@ const NetworkCanvas: React.FC = () => {
   }, [adjustedNodes, boundPoints]);
 
   if (!adjustedNodes.length) {
+    const hasAnyGeo = nodesWithCoords.length > 0;
+    const emptyLabel = hasAnyGeo ? 'No nodes of this type on the map.' : 'No geocoded nodes yet.';
     return (
-      <div className="flex-1 flex items-center justify-center bg-bg text-text2 text-sm">
-        No geo nodes found for current filters.
+      <div className="flex-1 flex items-center justify-center bg-bg text-text2 text-sm px-6 text-center">
+        {emptyLabel}
       </div>
     );
   }
