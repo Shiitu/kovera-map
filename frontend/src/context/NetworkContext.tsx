@@ -52,6 +52,17 @@ interface NetworkContextType {
 
 const NetworkContext = createContext<NetworkContextType | undefined>(undefined);
 
+/** Legacy UI stored 2/3 for idle/pursuing; those options are hidden — treat as All (0). */
+function readChainStatusFilterFromStorage(): 0 | 1 | 2 | 3 {
+  const raw = Number(localStorage.getItem('kovera_chain_status_filter'));
+  const v = Number.isFinite(raw) ? raw : 0;
+  if (v === 2 || v === 3) {
+    localStorage.setItem('kovera_chain_status_filter', '0');
+    return 0;
+  }
+  return (v as 0 | 1 | 2 | 3) || 0;
+}
+
 export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [graphData, setGraphData] = useState<any>(null);
   const [networkStats, setNetworkStats] = useState<any>(null);
@@ -66,9 +77,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [selectedNode, setSelectedNodeState] = useState<any | null>(null);
   const [activeChain, setActiveChain] = useState<any | null>(null);
   const [filter, setFilter] = useState('All');
-  const [chainStatusFilter, setChainStatusFilter] = useState<0 | 1 | 2 | 3>(
-    (Number(localStorage.getItem('kovera_chain_status_filter')) as 0 | 1 | 2 | 3) || 0
-  );
+  const [chainStatusFilter, setChainStatusFilter] = useState<0 | 1 | 2 | 3>(readChainStatusFilterFromStorage);
   const [privacyMode, setPrivacyMode] = useState<'public' | 'private'>(
     (localStorage.getItem('kovera_privacy_mode') as 'public' | 'private') || 'private'
   );

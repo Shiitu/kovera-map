@@ -3,9 +3,9 @@
  * @description Sidebar: Chain Status + grouped Node Filters, Chain List, admin actions.
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNetworkContext } from '../context/NetworkContext';
-// import ChainList from './ChainList';
+import ChainList from './ChainList';
 import { motion } from 'motion/react';
 import {
   Home,
@@ -15,13 +15,13 @@ import {
   Repeat,
   RotateCw,
   Layers,
-  Clock,
-  Zap
+  ChevronRight
 } from 'lucide-react';
 
 type FilterRow = { key: string; label: string; icon: React.ComponentType<{ className?: string }>; color: string };
 
 const Sidebar: React.FC = () => {
+  const [chainSectionExpanded, setChainSectionExpanded] = useState(false);
   const {
     filter,
     setFilter,
@@ -32,9 +32,16 @@ const Sidebar: React.FC = () => {
     refreshing,
     isAdmin,
     chainStatusFilter,
-    setChainStatusFilter
+    setChainStatusFilter,
+    activeChain,
+    setActiveChain
   } = useNetworkContext();
   const panelWidth = 'min(85vw, 250px)';
+  const chainFlyoutWidth = 300;
+
+  useEffect(() => {
+    if (!sidebarOpen) setChainSectionExpanded(false);
+  }, [sidebarOpen]);
 
   const chainStatusOptions: {
     value: 0 | 1 | 2 | 3;
@@ -43,8 +50,8 @@ const Sidebar: React.FC = () => {
     color: string;
   }[] = [
     { value: 0, label: 'All', icon: Layers, color: 'bg-kovera' },
-    { value: 2, label: 'Chains idle', icon: Clock, color: 'bg-amber-node' },
-    { value: 3, label: 'Actively pursuing', icon: Zap, color: 'bg-purple-node' }
+    // { value: 2, label: 'Chains idle', icon: Clock, color: 'bg-amber-node' },
+    // { value: 3, label: 'Actively pursuing', icon: Zap, color: 'bg-purple-node' }
   ];
 
   const filterAll: FilterRow = { key: 'All', label: 'All Nodes', icon: Home, color: 'bg-kovera' };
@@ -160,17 +167,22 @@ const Sidebar: React.FC = () => {
     );
   };
 
+  const chainCount = Array.isArray(graphData?.chains) ? graphData.chains.length : 0;
+
+  const showChainFlyout = sidebarOpen && chainSectionExpanded;
+
   return (
-    <motion.div
-      initial={false}
-      animate={{
-        width: sidebarOpen ? panelWidth : 0,
-        opacity: sidebarOpen ? 1 : 0,
-        marginRight: sidebarOpen ? 0 : -20
-      }}
-      transition={{ type: 'spring', damping: 25, stiffness: 120 }}
-      className="bg-bg2/60 backdrop-blur-sm border-r border-border2 flex flex-col h-full overflow-hidden shrink-0"
-    >
+    <div className="flex h-full shrink-0 items-stretch min-w-0">
+      <motion.div
+        initial={false}
+        animate={{
+          width: sidebarOpen ? panelWidth : 0,
+          opacity: sidebarOpen ? 1 : 0,
+          marginRight: sidebarOpen ? 0 : -20
+        }}
+        transition={{ type: 'spring', damping: 25, stiffness: 120 }}
+        className="bg-bg2/60 backdrop-blur-sm border-r border-border2 flex flex-col h-full overflow-hidden shrink-0"
+      >
       <div className="p-4 flex-1 space-y-5 overflow-y-auto w-[min(85vw,250px)]">
         {/* Node Filters */}
         <section>
@@ -197,6 +209,39 @@ const Sidebar: React.FC = () => {
             {chainStatusOptions.map((opt) => {
               const Icon = opt.icon;
               const selected = chainStatusFilter === opt.value;
+
+              if (opt.value === 0) {
+                return (
+                  <div key={opt.value} className="space-y-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setChainStatusFilter(0);
+                        setChainSectionExpanded((open) => {
+                          if (open) setActiveChain(null);
+                          return !open;
+                        });
+                      }}
+                      className={filterButtonClass(selected || chainSectionExpanded)}
+                      aria-expanded={chainSectionExpanded}
+                    >
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-2 h-2 rounded-full shrink-0 ${opt.color}`} />
+                        <Icon className="w-3.5 h-3.5 opacity-60 shrink-0" />
+                        <span className="truncate text-left">{opt.label}</span>
+                      </span>
+                      <span className="flex items-center gap-1.5 shrink-0">
+                        <span className="font-mono text-[10px] text-text3 tabular-nums">{chainCount}</span>
+                        <ChevronRight
+                          className={`w-3.5 h-3.5 text-text3 transition-transform shrink-0 ${chainSectionExpanded ? 'rotate-180' : ''}`}
+                          aria-hidden
+                        />
+                      </span>
+                    </button>
+                  </div>
+                );
+              }
+
               return (
                 <button
                   key={opt.value}
@@ -251,7 +296,52 @@ const Sidebar: React.FC = () => {
           GEOCODING: <span className="text-kovera">OK</span>
         </div>
       </div>
-    </motion.div>
+      </motion.div>
+
+      <motion.aside
+        initial={false}
+        animate={{
+          width: showChainFlyout ? chainFlyoutWidth : 0,
+          opacity: showChainFlyout ? 1 : 0
+        }}
+        transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+        className="h-full shrink-0 overflow-hidden border-r border-border2 bg-bg2/90 backdrop-blur-md shadow-[4px_0_24px_rgba(0,0,0,0.12)] z-20 flex flex-col"
+        style={{ pointerEvents: showChainFlyout ? 'auto' : 'none' }}
+        aria-hidden={!showChainFlyout}
+      >
+        <div
+          className="flex h-full min-h-0 flex-col p-3"
+          style={{ width: chainFlyoutWidth }}
+        >
+          <div className="flex items-center justify-between gap-2 mb-2 shrink-0">
+            <h3 className="text-[10px] uppercase text-text3 font-semibold tracking-widest">
+              Chains
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setActiveChain(null);
+              setChainSectionExpanded(false);
+            }}
+            className={`mb-2 w-full flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-xs transition-all border ${
+              !activeChain?.id
+                ? 'bg-kovera/10 border-kovera/30 text-kovera font-medium'
+                : 'border-border2 text-text2 hover:bg-white/6'
+            }`}
+          >
+            <span className="flex items-center gap-2 min-w-0">
+              <Layers className="w-3.5 h-3.5 opacity-70 shrink-0" />
+              <span className="truncate text-left">All chains</span>
+            </span>
+            <span className="font-mono text-[10px] text-text3 tabular-nums shrink-0">{chainCount}</span>
+          </button>
+          <div className="min-h-0 flex-1 overflow-y-auto pr-0.5 border-t border-border2 pt-2">
+            <ChainList />
+          </div>
+        </div>
+      </motion.aside>
+    </div>
   );
 };
 
