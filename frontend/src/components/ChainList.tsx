@@ -23,9 +23,25 @@ const ChainList: React.FC = () => {
         const ord = Array.isArray(chain.orderedPath) ? chain.orderedPath : [];
         const pathLen = mappedLen || ord.length || 0;
         const score = typeof chain.readinessScore === 'number' ? chain.readinessScore : chain.score;
+        const parts = Array.isArray(chain.participants) ? chain.participants : [];
+        const head = parts[0] as { name?: string } | undefined;
+        const tail = parts[parts.length - 1] as { name?: string } | undefined;
+        const headLabel = head?.name?.trim() || 'Head';
+        const tailLabel = tail?.name?.trim() || 'Tail';
+        const routeLabel =
+          parts.length >= 2 ? `${headLabel} → ${tailLabel}` : headLabel;
+
         return (
         <div 
           key={cid}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              setActiveChain(activeChain?.id === cid ? null : chain);
+            }
+          }}
           onClick={() => setActiveChain(activeChain?.id === cid ? null : chain)}
           className={`p-3 rounded-xl transition-all cursor-pointer group ${
             activeChain?.id === cid 
@@ -35,7 +51,7 @@ const ChainList: React.FC = () => {
                 : 'border border-border2 bg-card/50 opacity-60 hover:opacity-80'
           }`}
         >
-          <div className="flex justify-between items-start mb-1">
+          <div className="flex justify-between items-start gap-2 mb-1">
             <span className={`text-[10px] font-bold font-mono truncate max-w-[140px] ${chain.isReady ? 'text-kovera' : 'text-text3'}`}>
               {cid}
             </span>
@@ -44,15 +60,16 @@ const ChainList: React.FC = () => {
             )}
           </div>
           <div className="text-[10px] text-text3 uppercase tracking-wide mb-1">
-            {chain.chainType || 'chain'} · {pathLen} nodes (mapped {mappedLen})
+            {chain.chainType || 'chain'} · {pathLen} hop{pathLen === 1 ? '' : 's'}
+            {mappedLen > 0 && mappedLen < ord.length ? ` · ${mappedLen}/${ord.length} on map` : ''}
           </div>
-          
-          <div className="text-xs font-semibold mb-2 text-text2">
-            Move path on map
+
+          <div className="text-[11px] text-text2 leading-snug line-clamp-2" title={routeLabel}>
+            {routeLabel}
           </div>
 
           {(chain.isReady || typeof score === 'number') && (
-            <div className="w-full bg-bg h-1.5 rounded-full overflow-hidden">
+            <div className="w-full bg-bg h-1.5 rounded-full overflow-hidden mt-2">
               <div 
                 className="bg-gradient-to-r from-kovera to-kovera-light h-full rounded-full transition-all duration-500" 
                 style={{ width: `${Math.min(100, Math.round((score ?? 0) * 100))}%` }} 

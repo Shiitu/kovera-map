@@ -17,8 +17,10 @@ function uidFromGraphNode(n: any): string | undefined {
   const u = n.uid ?? n.userId;
   if (u !== undefined && u !== null) return String(u);
   const id = String(n.id || '');
-  const m = id.match(/^user[_-]?(\d+)$/i);
-  return m ? m[1] : undefined;
+  const mNum = id.match(/^user[_-]?(\d+)$/i);
+  if (mNum) return mNum[1];
+  const mAny = id.match(/^user[_-]?(.+)$/i);
+  return mAny ? mAny[1] : undefined;
 }
 
 export function buildGraphNodeResolver(nodes: any[]) {
@@ -65,6 +67,27 @@ export function buildGraphNodeResolver(nodes: any[]) {
       }
       for (const n of nodes) {
         if (String(uidFromGraphNode(n)) === num) return String(n.id);
+      }
+    }
+
+    // Alphanumeric user ids (e.g. user-69e6a82c89fadd6a54946460) — not matched by (\d+)-only regex
+    const userLoose = apiId.match(/^user[_-]?(.+)$/i);
+    if (userLoose) {
+      const tail = userLoose[1];
+      if (!/^\d+$/.test(tail)) {
+        const tryKeys = [apiId, `user-${tail}`, `user_${tail}`, tail];
+        for (const k of tryKeys) {
+          if (map.has(k)) return map.get(k)!;
+          const kl = String(k).toLowerCase();
+          if (map.has(kl)) return map.get(kl)!;
+        }
+        for (const n of nodes) {
+          const gid = String(n.id || '');
+          if (!gid) continue;
+          if (gid === apiId || gid === tail || gid === `user-${tail}` || gid === `user_${tail}`) return gid;
+          const u = uidFromGraphNode(n);
+          if (u && (u === tail || `user-${u}` === apiId)) return gid;
+        }
       }
     }
 

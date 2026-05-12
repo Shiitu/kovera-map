@@ -41,13 +41,13 @@ const toEdgePair = (edge: any) => ({
   type: String(edge.type || '').toUpperCase(),
 });
 
-const FitBounds: React.FC<{ points: LatLngExpression[] }> = ({ points }) => {
+const FitBounds: React.FC<{ points: LatLngExpression[]; maxZoom?: number }> = ({ points, maxZoom }) => {
   const map = useMap();
 
   React.useEffect(() => {
     if (!points.length) return;
-    map.fitBounds(points as any, { padding: [32, 32] });
-  }, [map, points]);
+    map.fitBounds(points as any, { padding: [32, 32], maxZoom: maxZoom ?? 12 });
+  }, [map, points, maxZoom]);
 
   return null;
 };
@@ -59,8 +59,36 @@ const percentile = (arr: number[], p: number) => {
   return sorted[idx];
 };
 
+/** Jitter overlapping pins (same lat/lng) for readability. */
+function spreadNodesByCoord(nodes: any[]): any[] {
+  const grouped = new Map<string, any[]>();
+  nodes.forEach((node: any) => {
+    const key = `${Number(node.lat).toFixed(6)}:${Number(node.lng).toFixed(6)}`;
+    const list = grouped.get(key) || [];
+    list.push(node);
+    grouped.set(key, list);
+  });
+  const spread: any[] = [];
+  grouped.forEach((list) => {
+    if (list.length === 1) {
+      spread.push(list[0]);
+      return;
+    }
+    list.forEach((node, index) => {
+      const angle = (Math.PI * 2 * index) / list.length;
+      const radius = 0.00022 + Math.floor(index / 12) * 0.0001;
+      spread.push({
+        ...node,
+        renderLat: Number(node.lat) + Math.sin(angle) * radius,
+        renderLng: Number(node.lng) + Math.cos(angle) * radius,
+      });
+    });
+  });
+  return spread;
+}
+
 const NetworkCanvas: React.FC = () => {
-  const { graphData, filter, selectedNode, setSelectedNode, theme, activeChain } = useNetworkContext();
+  const { graphData, filter, selectedNode, setSelectedNode, theme, activeChain, setActiveChain } = useNetworkContext();
 
   const nodesWithCoords = useMemo(() => {
     const nodes = Array.isArray(graphData?.nodes) ? graphData.nodes : [];
@@ -73,6 +101,15 @@ const NetworkCanvas: React.FC = () => {
     );
   }, [graphData]);
 
+  /** All geocoded graph nodes — used so chain polylines still resolve when the node-type filter hides pins. */
+  const fullGeoNodeById = useMemo(() => {
+    const m = new Map<string, any>();
+    for (const n of nodesWithCoords) {
+      if (n?.id != null) m.set(String(n.id), n);
+    }
+    return m;
+  }, [nodesWithCoords]);
+
   const filteredNodes = useMemo(() => {
     if (filter === 'User Homes') return nodesWithCoords.filter(isUserHomeLike);
     if (filter === 'Public Listings') return nodesWithCoords.filter(isPublicListing);
@@ -84,34 +121,21 @@ const NetworkCanvas: React.FC = () => {
     return nodesWithCoords;
   }, [nodesWithCoords, filter]);
 
-  const adjustedNodes = useMemo(() => {
-    const grouped = new Map<string, any[]>();
-    filteredNodes.forEach((node: any) => {
-      const key = `${Number(node.lat).toFixed(6)}:${Number(node.lng).toFixed(6)}`;
-      const list = grouped.get(key) || [];
-      list.push(node);
-      grouped.set(key, list);
-    });
+  const adjustedNodes = useMemo(() => spreadNodesByCoord(filteredNodes), [filteredNodes]);
 
-    const spread: any[] = [];
-    grouped.forEach((list) => {
-      if (list.length === 1) {
-        spread.push(list[0]);
-        return;
-      }
+  /** Chain selected in sidebar: only those path nodes as pins (plus the chain line). */
+  const displayNodes = useMemo(() => {
+    if (!activeChain?.id || !Array.isArray(activeChain.path) || !activeChain.path.length) {
+      return adjustedNodes;
+    }
+    const raw = activeChain.path
+      .map((id: string) => fullGeoNodeById.get(String(id)))
+      .filter(Boolean) as any[];
+    if (!raw.length) return [];
+    return spreadNodesByCoord(raw.map((n) => ({ ...n })));
+  }, [activeChain, fullGeoNodeById, adjustedNodes]);
 
-      list.forEach((node, index) => {
-        const angle = (Math.PI * 2 * index) / list.length;
-        const radius = 0.00022 + Math.floor(index / 12) * 0.0001;
-        spread.push({
-          ...node,
-          renderLat: Number(node.lat) + Math.sin(angle) * radius,
-          renderLng: Number(node.lng) + Math.cos(angle) * radius,
-        });
-      });
-    });
-    return spread;
-  }, [filteredNodes]);
+  const chainOnlyView = Boolean(activeChain?.id && displayNodes.length > 0);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, any>();
@@ -139,15 +163,24 @@ const NetworkCanvas: React.FC = () => {
     const chains = Array.isArray(graphData?.chains) ? graphData.chains : [];
     const segments: Array<{ id: string; points: LatLngExpression[]; active: boolean; ready: boolean }> = [];
 
+    const resolveNode = (nodeId: string) => {
+      const fromFilter = nodeMap.get(nodeId);
+      if (fromFilter) return fromFilter;
+      return fullGeoNodeById.get(nodeId);
+    };
+
     chains.forEach((chain: any, idx: number) => {
       const path = Array.isArray(chain?.path) ? chain.path : [];
       if (path.length < 2) return;
 
       const chainId = String(chain?.id || `chain-${idx}`);
       const points = path
-        .map((nodeId: string) => nodeMap.get(nodeId))
-        .filter(Boolean)
-        .map((node: any) => [Number(node.renderLat ?? node.lat), Number(node.renderLng ?? node.lng)] as LatLngExpression);
+        .map((nodeId: string) => {
+          const n = resolveNode(nodeId);
+          if (!n) return null;
+          return [Number(n.renderLat ?? n.lat), Number(n.renderLng ?? n.lng)] as LatLngExpression;
+        })
+        .filter((p): p is LatLngExpression => p != null);
 
       if (points.length < 2) return;
       segments.push({
@@ -159,11 +192,17 @@ const NetworkCanvas: React.FC = () => {
     });
 
     return segments;
-  }, [graphData, nodeMap, activeChain]);
+  }, [graphData, nodeMap, fullGeoNodeById, activeChain]);
+
+  /** When a chain is selected in the list, draw only that chain on the map. */
+  const visibleChainSegments = useMemo(() => {
+    if (!activeChain?.id) return chainSegments;
+    return chainSegments.filter((c) => c.id === activeChain.id);
+  }, [chainSegments, activeChain]);
 
   const markerIcons = useMemo(() => {
     const map = new Map<string, DivIcon>();
-    adjustedNodes.forEach((node: any) => {
+    displayNodes.forEach((node: any) => {
       const isSelected = selectedNode?.id === node.id;
       const color = markerColor(node);
       const size = isSelected ? 16 : 12;
@@ -180,34 +219,34 @@ const NetworkCanvas: React.FC = () => {
       );
     });
     return map;
-  }, [adjustedNodes, selectedNode]);
+  }, [displayNodes, selectedNode]);
 
   const center: LatLngExpression = useMemo(() => {
-    if (!adjustedNodes.length) return [0, 0];
+    if (!displayNodes.length) return [0, 0];
     return [
-      Number(adjustedNodes[0].renderLat ?? adjustedNodes[0].lat),
-      Number(adjustedNodes[0].renderLng ?? adjustedNodes[0].lng),
+      Number(displayNodes[0].renderLat ?? displayNodes[0].lat),
+      Number(displayNodes[0].renderLng ?? displayNodes[0].lng),
     ];
-  }, [adjustedNodes]);
+  }, [displayNodes]);
 
   const boundPoints: LatLngExpression[] = useMemo(
     () =>
-      adjustedNodes.map(
+      displayNodes.map(
         (node: any) => [Number(node.renderLat ?? node.lat), Number(node.renderLng ?? node.lng)] as LatLngExpression
       ),
-    [adjustedNodes]
+    [displayNodes]
   );
 
   const focusBoundPoints: LatLngExpression[] = useMemo(() => {
-    if (!adjustedNodes.length) return [];
-    if (adjustedNodes.length <= 50) return boundPoints;
-    const latitudes = adjustedNodes.map((node: any) => Number(node.renderLat ?? node.lat));
-    const longitudes = adjustedNodes.map((node: any) => Number(node.renderLng ?? node.lng));
+    if (!displayNodes.length) return [];
+    if (displayNodes.length <= 50) return boundPoints;
+    const latitudes = displayNodes.map((node: any) => Number(node.renderLat ?? node.lat));
+    const longitudes = displayNodes.map((node: any) => Number(node.renderLng ?? node.lng));
     const latLow = percentile(latitudes, 0.05);
     const latHigh = percentile(latitudes, 0.95);
     const lngLow = percentile(longitudes, 0.05);
     const lngHigh = percentile(longitudes, 0.95);
-    const focused = adjustedNodes
+    const focused = displayNodes
       .filter((node: any) => {
         const lat = Number(node.renderLat ?? node.lat);
         const lng = Number(node.renderLng ?? node.lng);
@@ -215,11 +254,33 @@ const NetworkCanvas: React.FC = () => {
       })
       .map((node: any) => [Number(node.renderLat ?? node.lat), Number(node.renderLng ?? node.lng)] as LatLngExpression);
     return focused.length > 5 ? focused : boundPoints;
-  }, [adjustedNodes, boundPoints]);
+  }, [displayNodes, boundPoints]);
 
-  if (!adjustedNodes.length) {
+  const displayNodeById = useMemo(() => {
+    const m = new Map<string, any>();
+    displayNodes.forEach((n: any) => m.set(String(n.id), n));
+    return m;
+  }, [displayNodes]);
+
+  const mapFitPoints = useMemo(() => {
+    if (!activeChain?.path?.length) return focusBoundPoints;
+    const pts: LatLngExpression[] = [];
+    for (const nodeId of activeChain.path) {
+      const id = String(nodeId);
+      const n = displayNodeById.get(id) || nodeMap.get(id) || fullGeoNodeById.get(id);
+      if (!n) continue;
+      pts.push([Number(n.renderLat ?? n.lat), Number(n.renderLng ?? n.lng)] as LatLngExpression);
+    }
+    return pts.length >= 2 ? pts : focusBoundPoints;
+  }, [activeChain, displayNodeById, nodeMap, fullGeoNodeById, focusBoundPoints]);
+
+  if (!displayNodes.length) {
     const hasAnyGeo = nodesWithCoords.length > 0;
-    const emptyLabel = hasAnyGeo ? 'No nodes of this type on the map.' : 'No geocoded nodes yet.';
+    const emptyLabel = activeChain?.id
+      ? 'No coordinates on the map for this chain path.'
+      : hasAnyGeo
+        ? 'No nodes of this type on the map.'
+        : 'No geocoded nodes yet.';
     return (
       <div className="flex-1 flex items-center justify-center bg-bg text-text2 text-sm px-6 text-center">
         {emptyLabel}
@@ -229,8 +290,10 @@ const NetworkCanvas: React.FC = () => {
 
   return (
     <div className="flex-1 relative overflow-hidden">
-      <div className="absolute top-3 left-3 z-1000 bg-bg2/90 text-text px-3 py-1.5 rounded-lg border border-border2 text-xs">
-        Showing {adjustedNodes.length} / {nodesWithCoords.length} geo nodes
+      <div className="absolute top-3 left-3 z-1000 bg-bg2/90 text-text px-3 py-1.5 rounded-lg border border-border2 text-xs max-w-[min(90vw,320px)]">
+        {chainOnlyView
+          ? `Chain: ${activeChain?.id} · ${displayNodes.length} pin${displayNodes.length === 1 ? '' : 's'}`
+          : `Showing ${adjustedNodes.length} / ${nodesWithCoords.length} geo nodes`}
       </div>
       <MapContainer
         center={center}
@@ -238,7 +301,10 @@ const NetworkCanvas: React.FC = () => {
         className="w-full h-full"
         zoomControl
       >
-        <FitBounds points={focusBoundPoints} />
+        <FitBounds
+          points={mapFitPoints}
+          maxZoom={activeChain?.path?.length >= 2 ? 14 : undefined}
+        />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url={
@@ -248,7 +314,8 @@ const NetworkCanvas: React.FC = () => {
           }
         />
 
-        {filteredEdges.map((edge: any, index: number) => {
+        {!activeChain?.id &&
+          filteredEdges.map((edge: any, index: number) => {
           const fromNode = nodeMap.get(edge.from);
           const toNode = nodeMap.get(edge.to);
           if (!fromNode || !toNode) return null;
@@ -278,26 +345,44 @@ const NetworkCanvas: React.FC = () => {
           );
         })}
 
-        {chainSegments.map((chain) => (
-          <Polyline
-            key={`chain-${chain.id}`}
-            positions={chain.points}
-            pathOptions={{
-              color: chain.active ? '#FACC15' : chain.ready ? '#22C98A' : '#EAB308',
-              opacity: chain.active ? 1 : chain.ready ? 0.9 : 0.6,
-              weight: chain.active ? 5 : chain.ready ? 3.5 : 2.5,
-              dashArray: chain.active ? undefined : '8 6',
-            }}
-          />
-        ))}
+        {visibleChainSegments
+          .filter((c) => !c.active)
+          .map((chain) => (
+            <Polyline
+              key={`chain-${chain.id}`}
+              positions={chain.points}
+              pathOptions={{
+                color: chain.ready ? '#22C98A' : '#EAB308',
+                opacity: chain.ready ? 0.9 : 0.6,
+                weight: chain.ready ? 3.5 : 2.5,
+                dashArray: '8 6',
+              }}
+            />
+          ))}
+        {visibleChainSegments
+          .filter((c) => c.active)
+          .map((chain) => (
+            <Polyline
+              key={`chain-${chain.id}-active`}
+              positions={chain.points}
+              pathOptions={{
+                color: '#FACC15',
+                opacity: 1,
+                weight: 6,
+              }}
+            />
+          ))}
 
-        {adjustedNodes.map((node: any) => {
+        {displayNodes.map((node: any) => {
           return (
             <Marker
               key={node.id}
               position={{ lat: Number(node.renderLat ?? node.lat), lng: Number(node.renderLng ?? node.lng) }}
               eventHandlers={{
-                click: () => setSelectedNode(node),
+                click: () => {
+                  setActiveChain(null);
+                  setSelectedNode(node);
+                },
               }}
               icon={markerIcons.get(node.id)}
             >

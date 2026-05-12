@@ -4,8 +4,12 @@
  */
 
 import React from 'react';
+import { useNetworkContext } from '../context/NetworkContext';
 
 const Legend: React.FC = () => {
+  const { activeChain } = useNetworkContext();
+  if (activeChain?.id) return null;
+
   return (
     <div className="absolute bottom-6 left-6 p-4 rounded-2xl backdrop-blur-xl bg-card/60 border border-border2 z-1200 pointer-events-none shadow-2xl">
       <div className="mb-3">
