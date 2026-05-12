@@ -57,14 +57,6 @@ const Legend: React.FC = () => {
             <div className="w-5 h-[1.5px] border-t-2 border-dashed border-pink-node" />
             <span className="text-[9px] uppercase text-text3 font-mono tracking-wider">Dream Link</span>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-[1.5px] bg-kovera shadow-[0_0_8px_rgba(34,201,138,0.3)]" />
-            <span className="text-[9px] uppercase text-kovera font-mono tracking-wider font-semibold">Ready Chain</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="w-5 h-[2px] bg-yellow-400" />
-            <span className="text-[9px] uppercase text-yellow-300 font-mono tracking-wider font-semibold">Active Chain</span>
-          </div>
         </div>
       </div>
     </div>
