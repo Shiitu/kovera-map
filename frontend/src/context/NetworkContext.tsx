@@ -75,7 +75,7 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedNode, setSelectedNodeState] = useState<any | null>(null);
-  const [activeChain, setActiveChain] = useState<any | null>(null);
+  const [activeChain, setActiveChainState] = useState<any | null>(null);
   const [filter, setFilter] = useState('All');
   const [chainStatusFilter, setChainStatusFilter] = useState<0 | 1 | 2 | 3>(readChainStatusFilterFromStorage);
   const [privacyMode, setPrivacyMode] = useState<'public' | 'private'>(
@@ -161,6 +161,12 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
       localStorage.setItem('kovera_privacy_mode', next);
       return next;
     });
+  }, []);
+
+  /** Selecting a chain forces node filter to All so the full path is visible on the map. */
+  const setActiveChain = useCallback((chain: any | null) => {
+    setActiveChainState(chain);
+    if (chain) setFilter('All');
   }, []);
 
   // Handle theme sync with document
