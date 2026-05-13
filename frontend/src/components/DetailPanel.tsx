@@ -7,7 +7,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNetworkContext } from '../context/NetworkContext';
 import { analyticsApi } from '../services/api';
-import { Info, X, MapPin, Heart, ArrowDownLeft, ArrowUpRight, Link2 } from 'lucide-react';
+import { Info, X, MapPin, Heart, ArrowDownLeft, ArrowUpRight, Link2, UserCheck, UserX } from 'lucide-react';
 import { motion } from 'motion/react';
 
 const DetailPanel: React.FC = () => {
@@ -48,6 +48,8 @@ const DetailPanel: React.FC = () => {
     return type.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   };
   const isUserHomeNode = (node: any) => String(node?.type || '').toLowerCase() === 'user_home';
+  const isUserLikeNode = (node: any) =>
+    ['user_home', 'swapper', 'pure_seller', 'pure_buyer'].includes(String(node?.type || '').toLowerCase());
 
   const safeLabel = (value?: string) => {
     const raw = String(value || '').trim();
@@ -129,6 +131,37 @@ const DetailPanel: React.FC = () => {
                     </h4>
                     <div className="kovera-card p-3 text-xs text-text2 leading-relaxed">
                       {displayNode.address}
+                    </div>
+                  </section>
+                )}
+
+                {/* Agent linkage (from chains API enrichment) — only meaningful on user-type nodes. */}
+                {isUserLikeNode(displayNode) && typeof displayNode.hasAgent === 'boolean' && (
+                  <section>
+                    <h4 className="text-[10px] uppercase text-text3 font-semibold mb-2 tracking-widest">
+                      Agent Linkage
+                    </h4>
+                    <div className={`kovera-card p-3 flex items-center gap-2.5 ${
+                      displayNode.hasAgent ? 'border-kovera/30' : 'border-pink-node/30'
+                    }`}>
+                      {displayNode.hasAgent ? (
+                        <UserCheck className="w-4 h-4 text-kovera shrink-0" />
+                      ) : (
+                        <UserX className="w-4 h-4 text-pink-node shrink-0" />
+                      )}
+                      <div className="min-w-0">
+                        <div className={`text-xs font-semibold ${displayNode.hasAgent ? 'text-kovera' : 'text-pink-node'}`}>
+                          {displayNode.hasAgent ? 'Linked to Agent' : 'No Agent Linked'}
+                        </div>
+                        {displayNode.hasAgent && (displayNode.agentName || displayNode.agentEmail) && (
+                          <div className="text-[11px] text-text2 truncate">
+                            {displayNode.agentName || ''}
+                            {displayNode.agentEmail ? (
+                              <span className="text-text3 font-mono"> · {displayNode.agentEmail}</span>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </section>
                 )}

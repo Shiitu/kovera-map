@@ -11,6 +11,7 @@ import { useNetworkContext } from '../context/NetworkContext';
 
 const toNodeType = (node: any) => String(node.type || '').toLowerCase();
 const isUserHomeLike = (node: any) => ['user_home', 'swapper', 'pure_seller'].includes(toNodeType(node));
+const isUserLikeNode = (node: any) => ['user_home', 'swapper', 'pure_seller', 'pure_buyer'].includes(toNodeType(node));
 const isSwapperNode = (node: any) =>
   toNodeType(node) === 'swapper' ||
   (toNodeType(node) === 'user_home' && String(node.personType || '').toLowerCase() === 'swapper');
@@ -88,7 +89,8 @@ function spreadNodesByCoord(nodes: any[]): any[] {
 }
 
 const NetworkCanvas: React.FC = () => {
-  const { graphData, filter, selectedNode, setSelectedNode, theme, activeChain, setActiveChain } = useNetworkContext();
+  const { graphData, filter, selectedNode, setSelectedNode, theme, activeChain, setActiveChain, privacyMode } = useNetworkContext();
+  const showTiles = privacyMode === 'private';
 
   const nodesWithCoords = useMemo(() => {
     const nodes = Array.isArray(graphData?.nodes) ? graphData.nodes : [];
@@ -206,13 +208,26 @@ const NetworkCanvas: React.FC = () => {
       const isSelected = selectedNode?.id === node.id;
       const color = markerColor(node);
       const size = isSelected ? 16 : 12;
+
+      // For user-like nodes (home, swapper, pure_seller, pure_buyer), differentiate
+      // whether the user is linked to an agent. Users WITHOUT an agent get a
+      // dashed red ring; users WITH an agent keep the solid white border and
+      // also get a small kovera-green halo so they pop on the map.
+      const userLike = isUserLikeNode(node);
+      const noAgent = userLike && node.hasAgent === false;
+      const withAgent = userLike && node.hasAgent === true;
+
+      const borderStyle = noAgent ? 'dashed' : 'solid';
+      const borderColor = noAgent ? '#EF4444' : '#fff';
+      const haloShadow = withAgent ? 'box-shadow:0 0 0 2px rgba(34,201,138,0.45);' : '';
+
       map.set(
         node.id,
         L.divIcon({
           className: 'kovera-node-icon',
           html: isDreamAnchor(node)
-            ? `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid #fff;transform:rotate(45deg);"></div>`
-            : `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid #fff;border-radius:9999px;"></div>`,
+            ? `<div style="width:${size}px;height:${size}px;background:${color};border:2px ${borderStyle} ${borderColor};transform:rotate(45deg);${haloShadow}"></div>`
+            : `<div style="width:${size}px;height:${size}px;background:${color};border:2px ${borderStyle} ${borderColor};border-radius:9999px;${haloShadow}"></div>`,
           iconSize: [size, size],
           iconAnchor: [size / 2, size / 2],
         })
@@ -300,19 +315,26 @@ const NetworkCanvas: React.FC = () => {
         zoom={12}
         className="w-full h-full"
         zoomControl
+        style={
+          !showTiles
+            ? { background: theme === 'dark' ? '#0B0F14' : '#F1F5F9' }
+            : undefined
+        }
       >
         <FitBounds
           points={mapFitPoints}
           maxZoom={activeChain?.path?.length >= 2 ? 14 : undefined}
         />
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url={
-            theme === 'dark'
-              ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-              : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-          }
-        />
+        {showTiles && (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url={
+              theme === 'dark'
+                ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+            }
+          />
+        )}
 
         {!activeChain?.id &&
           filteredEdges.map((edge: any, index: number) => {
@@ -390,6 +412,18 @@ const NetworkCanvas: React.FC = () => {
                 <div className="text-xs">
                   <div className="font-semibold">{node.label || node.name || node.id}</div>
                   <div>{node.address || 'No address'}</div>
+                  {isUserLikeNode(node) && (
+                    <div
+                      className="mt-0.5 font-semibold"
+                      style={{ color: node.hasAgent === true ? '#22C98A' : node.hasAgent === false ? '#EF4444' : '#9CA3AF' }}
+                    >
+                      {node.hasAgent === true
+                        ? `Linked agent${node.agentName ? `: ${node.agentName}` : ''}`
+                        : node.hasAgent === false
+                          ? 'No agent linked'
+                          : 'Agent: unknown'}
+                    </div>
+                  )}
                 </div>
               </Tooltip>
             </Marker>
