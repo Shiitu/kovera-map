@@ -9,7 +9,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { analyticsApi } from '../services/api';
-import { normalizeChainsFromApi } from '../utils/chainPaths';
+import { normalizeChainsFromApi, buildUserAgentMap } from '../utils/chainPaths';
 
 interface NetworkContextType {
   graphData: any;
@@ -111,10 +111,28 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
         String(n.listingCategory || n.source || '').toLowerCase() === 'off_market'
     ).length;
 
+    // New API shape: `agents` is a number, `clientsWithAgents` is flat,
+    // and pocket count lives at `nodes.pocketListing`. Old object shape
+    // (`agents.signedUp` etc.) is still supported for backward compatibility.
+    const agentsFromApi =
+      typeof networkStats?.agents === 'number'
+        ? networkStats.agents
+        : networkStats?.agents?.signedUp ?? networkStats?.agentsSignedUp;
+
+    const linkedClientsFromApi =
+      networkStats?.clientsWithAgents ??
+      networkStats?.agents?.linkedClients ??
+      networkStats?.linkedClients;
+
+    const pocketFromApi =
+      networkStats?.nodes?.pocketListing ??
+      networkStats?.agents?.offMarketListings ??
+      networkStats?.offMarketListings;
+
     return {
-      agentsSignedUp: Number(networkStats?.agents?.signedUp ?? networkStats?.agentsSignedUp ?? fallbackAgents ?? 0),
-      linkedClients: Number(networkStats?.agents?.linkedClients ?? networkStats?.linkedClients ?? fallbackLinkedClients ?? 0),
-      offMarketListings: Number(networkStats?.agents?.offMarketListings ?? networkStats?.offMarketListings ?? fallbackOffMarket ?? 0)
+      agentsSignedUp: Number(agentsFromApi ?? fallbackAgents ?? 0),
+      linkedClients: Number(linkedClientsFromApi ?? fallbackLinkedClients ?? 0),
+      offMarketListings: Number(pocketFromApi ?? fallbackOffMarket ?? 0)
     };
   }, [graphData, networkStats]);
 
@@ -207,8 +225,25 @@ export const NetworkProvider: React.FC<{ children: React.ReactNode }> = ({ child
             ? chainsRes.value.data.chains
             : [];
         const chainsData = normalizeChainsFromApi(rawChains, nodes);
+
+        // Enrich each node with its agent info derived from the chains API
+        // (`hasAgent`, `agentName`, `agentEmail`) so map / detail UI can
+        // differentiate users linked to an agent vs not without re-walking chains.
+        const agentMap = buildUserAgentMap(rawChains, nodes);
+        const enrichedNodes = nodes.map((n: any) => {
+          const info = agentMap.get(String(n.id));
+          if (!info) return n;
+          return {
+            ...n,
+            hasAgent: n.hasAgent ?? info.hasAgent,
+            agentName: n.agentName ?? info.agentName,
+            agentEmail: n.agentEmail ?? info.agentEmail,
+            optedIn: n.optedIn ?? info.optedIn,
+          };
+        });
+
         setGraphData({
-          nodes,
+          nodes: enrichedNodes,
           edges,
           chains: chainsData,
         });

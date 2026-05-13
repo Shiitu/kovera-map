@@ -43,6 +43,26 @@ const Legend: React.FC = () => {
       </div>
       
       <div className="border-t border-border2 pt-3">
+        <h4 className="text-[9px] uppercase font-semibold tracking-[0.2em] text-text3 mb-2.5">Agent Link</h4>
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <div
+              className="w-3 h-3 rounded-full bg-blue-node"
+              style={{ border: '2px solid #fff', boxShadow: '0 0 0 2px rgba(34,201,138,0.45)' }}
+            />
+            <span className="text-[9px] uppercase text-text3 font-mono tracking-wider">User w/ Agent</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-3 h-3 rounded-full bg-blue-node"
+              style={{ border: '2px dashed #EF4444' }}
+            />
+            <span className="text-[9px] uppercase text-text3 font-mono tracking-wider">User w/o Agent</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border2 pt-3 mt-3">
         <h4 className="text-[9px] uppercase font-semibold tracking-[0.2em] text-text3 mb-2.5">Topology</h4>
         <div className="space-y-2">
           <div className="flex items-center gap-3">

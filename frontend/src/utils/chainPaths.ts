@@ -119,6 +119,51 @@ export function asStringArray(v: unknown): string[] {
   return [];
 }
 
+/**
+ * Build a Map<graphNodeId, agentInfo> from raw chain API data.
+ * Walks every chain participant and resolves their `userId` (e.g. `user-54477637`,
+ * `seeded-749`, or a bare `54477637`) to the corresponding graph node id.
+ *
+ * If a node appears in multiple chains we prefer:
+ *   - `hasAgent: true` over `false` (a single chain proving an agent wins)
+ *   - the first non-empty `agentName` / `agentEmail`
+ */
+export type AgentInfo = {
+  hasAgent: boolean;
+  agentName?: string;
+  agentEmail?: string;
+  optedIn?: boolean;
+};
+
+export function buildUserAgentMap(raw: any[], nodes: any[]): Map<string, AgentInfo> {
+  const out = new Map<string, AgentInfo>();
+  const safeNodes = Array.isArray(nodes) ? nodes : [];
+  if (!Array.isArray(raw) || !safeNodes.length) return out;
+
+  const resolve = buildGraphNodeResolver(safeNodes);
+
+  for (const chain of raw) {
+    const participants = Array.isArray(chain?.participants) ? chain.participants : [];
+    for (const p of participants) {
+      const apiId = String(p?.userId ?? '');
+      if (!apiId) continue;
+      const gid = resolve(apiId);
+      if (!gid) continue;
+
+      const prev = out.get(gid);
+      const next: AgentInfo = {
+        hasAgent: Boolean(prev?.hasAgent || p?.hasAgent === true),
+        agentName: prev?.agentName || (typeof p?.agentName === 'string' ? p.agentName : undefined),
+        agentEmail: prev?.agentEmail || (typeof p?.agentEmail === 'string' ? p.agentEmail : undefined),
+        optedIn: prev?.optedIn ?? (typeof p?.optedIn === 'boolean' ? p.optedIn : undefined),
+      };
+      out.set(gid, next);
+    }
+  }
+
+  return out;
+}
+
 export function normalizeChainsFromApi(raw: any[], nodes: any[]): NormalizedChain[] {
   const safeNodes = Array.isArray(nodes) ? nodes : [];
   if (!Array.isArray(raw) || !safeNodes.length) return [];
